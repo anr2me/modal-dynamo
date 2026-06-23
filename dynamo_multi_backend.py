@@ -429,6 +429,7 @@ vllm_image = (
     .apt_install(["clang", "llvm"])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     .uv_pip_install("huggingface-hub>=0.36.0", "requests")
+    .uv_pip_install(["numpy", "torch~=2.10.0", "torchao~=0.16.0", "torchvision~=0.25.0", "torchaudio~=2.10.0", "torchcodec~=0.10.0"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     .uv_pip_install(
         ["ai-dynamo[vllm]", "lmcache"], extra_options="--no-build-isolation", pre=True
     )
