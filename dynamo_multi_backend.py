@@ -302,6 +302,7 @@ sglang_image = (
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     .env({"SGLANG_ENABLE_JIT_DEEPGEMM": "1"})
+    .env({"TORCH_CUDA_ARCH_LIST": "8.0;8.6;9.0;9.0a;10.0;10.0a;10.3"})
 )
 sglang_image = sglang_image.run_function(
     compile_deep_gemm,
