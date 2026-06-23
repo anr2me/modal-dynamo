@@ -426,6 +426,7 @@ class DynamoSGLangLMCache:
 vllm_image = (
     modal.Image.from_registry("vllm/vllm-openai:v0.23.0", add_python="3.12")
     .entrypoint([])
+    .apt_install(["clang", "llvm"])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     .uv_pip_install("huggingface-hub>=0.36.0", "requests")
     .uv_pip_install(
