@@ -94,7 +94,7 @@ DG_CACHE_VOL = modal.Volume.from_name("deepgemm-cache", create_if_missing=True)
 DG_CACHE_PATH = "/root/.cache/deep_gemm"
 
 N_GPUS = 1
-GPU = f"H100!:{N_GPUS}"
+GPU = f"L40S:{N_GPUS}"
 
 TARGET_INPUTS = 10
 MAX_INPUTS = 1000
