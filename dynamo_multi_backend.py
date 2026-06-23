@@ -298,7 +298,7 @@ sglang_image = (
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
     .uv_pip_install(
-        "ai-dynamo[sglang]", "lmcache", extra_options="--prerelease=allow"
+        ["ai-dynamo[sglang]", "lmcache"], extra_options="--no-build-isolation", pre=True
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     .env({"SGLANG_ENABLE_JIT_DEEPGEMM": "1"})
@@ -430,7 +430,7 @@ vllm_image = (
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     .uv_pip_install("huggingface-hub>=0.36.0", "requests")
     .uv_pip_install(
-        "ai-dynamo[vllm]", "lmcache", extra_options="--prerelease=allow"
+        ["ai-dynamo[vllm]", "lmcache"], extra_options="--no-build-isolation", pre=True
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     .env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
@@ -573,7 +573,7 @@ trtllm_image = (
     .uv_pip_install("huggingface-hub>=0.36.0", "requests")
     # LMCache's TensorRT-LLM connector is only on the `dev` branch until
     # NVIDIA/TensorRT-LLM#12626 and the matching adapter ship stably.
-    .uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", gpu=GPU)
+    .uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", extra_options="--no-build-isolation", pre=True, gpu=GPU)
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # PYTHONHASHSEED=0 is required by LMCache's TRT-LLM adapter: chunk
     # hashing depends on a stable hash() across runs/processes.
