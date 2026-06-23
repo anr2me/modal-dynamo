@@ -298,7 +298,7 @@ sglang_image = (
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
     .uv_pip_install(
-        ["ai-dynamo[sglang]", "lmcache"], extra_options="--no-build-isolation", pre=True
+        ["ai-dynamo[sglang]", "lmcache"], pre=True #, extra_options="--no-build-isolation" 
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     .env({"SGLANG_ENABLE_JIT_DEEPGEMM": "1"})
