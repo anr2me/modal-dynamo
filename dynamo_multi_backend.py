@@ -1,5 +1,5 @@
 """
-Serverless Qwen 3-8B with NVIDIA Dynamo (SGLang / vLLM / TensorRT-LLM) +
+Serverless Qwen 3.6-27B with NVIDIA Dynamo (SGLang / vLLM / TensorRT-LLM) +
 KV-cache offload on Modal.
 
 Adapted from: https://modal.com/docs/examples/sglang_snapshot
@@ -82,9 +82,9 @@ except ImportError:
 
 MINUTES = 60  # seconds
 
-MODEL_NAME = "Qwen/Qwen3-8B-FP8"
+MODEL_NAME = "Qwen/Qwen3.6-27B-FP8"
 MODEL_REVISION = (
-    "220b46e3b2180893580a4454f21f22d3ebb187d3"  # latest commit as of 2026-01
+    "e89b16ebf1988b3d6befa7de50abc2d76f26eb09"  # latest commit
 )
 
 HF_CACHE_VOL = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
