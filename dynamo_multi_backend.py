@@ -291,10 +291,10 @@ app = modal.App(name="dynamo")
 # 1) SGLang backend
 # =========================================================================
 sglang_image = (
-    modal.Image.from_registry("lmsysorg/sglang:v0.5.6.post2-cu129-amd64-runtime", add_python="3.12")
+    modal.Image.from_registry("lmsysorg/sglang:v0.5.13.post1-runtime", add_python="3.12")
     .entrypoint([])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
-    .uv_pip_install("huggingface-hub~=0.36.0", "requests")
+    .uv_pip_install("huggingface-hub>=0.36.0", "requests")
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
     .uv_pip_install(
@@ -424,10 +424,10 @@ class DynamoSGLangLMCache:
 # which the connector reads directly - no separate YAML file needed here
 # (unlike the SGLang path).
 vllm_image = (
-    modal.Image.from_registry("vllm/vllm-openai:v0.11.0", add_python="3.12")
+    modal.Image.from_registry("vllm/vllm-openai:v0.23.0", add_python="3.12")
     .entrypoint([])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
-    .uv_pip_install("huggingface-hub~=0.36.0", "requests")
+    .uv_pip_install("huggingface-hub>=0.36.0", "requests")
     .uv_pip_install(
         "ai-dynamo[vllm]", "lmcache", extra_options="--prerelease=allow"
     )
@@ -569,7 +569,7 @@ trtllm_image = (
     modal.Image.from_registry("nvcr.io/nvidia/ai-dynamo/tensorrtllm-runtime:1.2.1", add_python="3.12")
     .entrypoint([])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
-    .uv_pip_install("huggingface-hub~=0.36.0", "requests")
+    .uv_pip_install("huggingface-hub>=0.36.0", "requests")
     # LMCache's TensorRT-LLM connector is only on the `dev` branch until
     # NVIDIA/TensorRT-LLM#12626 and the matching adapter ship stably.
     .pip_install("git+https://github.com/LMCache/LMCache.git@dev")
