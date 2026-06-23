@@ -260,6 +260,27 @@ def compile_deep_gemm():
         )
 
 
+def get_secrets() -> list[modal.Secret]:
+    """Prefer Modal Secret 'huggingface-secret'; fall back to local HF_TOKEN env. 
+    Public models work even when both are absent (warned)."""
+    secrets = []
+    # Try with 'huggingface-secret'
+    try:
+        s = modal.Secret.from_name("huggingface-secret")
+        s.hydrate()  # from_name is lazy, force the existence check here
+        secrets.append(s)
+    except modal.exception.NotFoundError:
+        token = os.environ.get("HF_TOKEN", "")
+        if not token:
+            print(
+                "Warning: no Modal Secret 'huggingface-secret' and no HF_TOKEN env. "
+                "Public models will download with throttled bandwidth; "
+                "gated models will fail."
+            )
+        secrets.append(modal.Secret.from_dict({"HF_TOKEN": token}))
+    return secrets
+
+
 app = modal.App(name="dynamo")
 
 
@@ -283,6 +304,7 @@ sglang_image = sglang_image.run_function(
     compile_deep_gemm,
     volumes={DG_CACHE_PATH: DG_CACHE_VOL, HF_CACHE_PATH: HF_CACHE_VOL},
     gpu=GPU,
+    secrets=get_secrets(),
 )
 sglang_image = sglang_image.env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
 
@@ -309,6 +331,7 @@ max_local_cpu_size: {SGLANG_LMCACHE_MAX_LOCAL_CPU_GB}
     volumes={HF_CACHE_PATH: HF_CACHE_VOL, DG_CACHE_PATH: DG_CACHE_VOL},
     enable_memory_snapshot=True,
     experimental_options={"enable_gpu_snapshot": True},
+    secrets=get_secrets(),
 )
 @modal.concurrent(target_inputs=TARGET_INPUTS, max_inputs=MAX_INPUTS)
 class DynamoSGLangLMCache:
@@ -423,6 +446,7 @@ VLLM_LMCACHE_MAX_LOCAL_CPU_GB = "20"
     volumes={HF_CACHE_PATH: HF_CACHE_VOL},
     enable_memory_snapshot=True,
     experimental_options={"enable_gpu_snapshot": True},
+    secrets=get_secrets(),
 )
 @modal.concurrent(target_inputs=TARGET_INPUTS, max_inputs=MAX_INPUTS)
 class DynamoVLLMLMCache:
@@ -572,6 +596,7 @@ kv_connector_config:
     volumes={HF_CACHE_PATH: HF_CACHE_VOL},
     enable_memory_snapshot=True,
     experimental_options={"enable_gpu_snapshot": True},
+    secrets=get_secrets(),
 )
 @modal.concurrent(target_inputs=TARGET_INPUTS, max_inputs=MAX_INPUTS)
 class DynamoTRTLLMLMCache:
