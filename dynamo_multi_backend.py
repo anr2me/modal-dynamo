@@ -573,7 +573,8 @@ trtllm_image = (
     .uv_pip_install("huggingface-hub>=0.36.0", "requests")
     # LMCache's TensorRT-LLM connector is only on the `dev` branch until
     # NVIDIA/TensorRT-LLM#12626 and the matching adapter ship stably.
-    .uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", extra_options="--no-build-isolation", pre=True, gpu=GPU)
+    #.uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", extra_options="--no-build-isolation", pre=True, gpu=GPU)
+    .uv_pip_install("lmcache", extra_options="--no-build-isolation", pre=True)
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # PYTHONHASHSEED=0 is required by LMCache's TRT-LLM adapter: chunk
     # hashing depends on a stable hash() across runs/processes.
