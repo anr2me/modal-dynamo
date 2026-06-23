@@ -47,6 +47,7 @@ Each class runs **two subprocesses in one Modal container**:
 - **Discovery** uses `--discovery-backend file` — no etcd or NATS cluster needed, since each class is a single aggregated worker with nothing to discover.
 - **Crash watchdog**: the two subprocesses fate-share. If either one dies for any reason while the container is serving traffic, a background thread terminates the other, so the container never silently runs half-alive. See `start_crash_watchdog()` in the source.
 - **Memory snapshotting** (Modal's GPU + CPU memory snapshot feature) is preserved from the original SGLang example: each worker is warmed up and put to sleep before the snapshot is taken, then woken on restore.
+- **Model pre-download at build time**: `download_model()` runs as a CPU-only `Image.run_function` build step in all three images, before any GPU step. It pulls `MODEL_NAME`/`MODEL_REVISION` into the shared `huggingface-cache` Volume via `huggingface_hub.snapshot_download`, so the weights are already on disk the moment a GPU container starts — no live, billed GPU time spent waiting on a multi-GB download. All three images mount the same Volume, so only the first one built actually downloads anything over the network; the other two find the weights already there.
 
 ## Requirements
 
@@ -60,7 +61,7 @@ Each class runs **two subprocesses in one Modal container**:
 modal deploy dynamo_multi_backend.py
 ```
 
-This builds all three container images (SGLang, vLLM, TensorRT-LLM) and creates one Modal App (`example-dynamo-multi-backend`) with three deployed classes. Each gets its own URL, e.g.:
+This builds all three container images (SGLang, vLLM, TensorRT-LLM) and creates one Modal App (`dynamo`) with three deployed classes. Building downloads the model once per image (see "Model pre-download at build time" above) — expect the first `modal deploy` to take longer than subsequent ones, since later builds reuse the cached image layers and the already-populated Volume. Each class gets its own URL, e.g.:
 
 ```
 https://your-workspace--example-dynamo-multi-backend-dynamosglanglmcache.modal.run
