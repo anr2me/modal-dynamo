@@ -83,8 +83,6 @@ except ImportError:
 MINUTES = 60  # seconds
 IDLETIME = 2 * MINUTES
 
-MAX_CONTAINERS = 1
-
 MODEL_NAME = "Qwen/Qwen3.6-27B-FP8"
 MODEL_REVISION = (
     "e89b16ebf1988b3d6befa7de50abc2d76f26eb09"  # latest commit
@@ -101,6 +99,11 @@ GPU = f"L40S:{N_GPUS}"
 
 TARGET_INPUTS = 10
 MAX_INPUTS = 1000
+
+MAX_CONTAINERS = 1
+
+LMCACHE_MAX_LOCAL_CPU_GB = 20
+
 
 # -----------------------------------------------------------------------
 # Ports - each backend's frontend gets its own port so the three classes
@@ -314,7 +317,7 @@ sglang_image = sglang_image.env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
 # budget in GB for offloaded KV blocks - tune to your container's available
 # RAM, leaving headroom for everything else running.
 SGLANG_LMCACHE_CONFIG_PATH = "/root/lmcache_config_sglang.yaml"
-SGLANG_LMCACHE_MAX_LOCAL_CPU_GB = 20
+SGLANG_LMCACHE_MAX_LOCAL_CPU_GB = LMCACHE_MAX_LOCAL_CPU_GB
 SGLANG_LMCACHE_CONFIG_YAML = f"""\
 chunk_size: 256
 local_cpu: true
@@ -435,7 +438,7 @@ vllm_image = (
 VLLM_KV_TRANSFER_CONFIG = (
     '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}'
 )
-VLLM_LMCACHE_MAX_LOCAL_CPU_GB = "20"
+VLLM_LMCACHE_MAX_LOCAL_CPU_GB = f"{LMCACHE_MAX_LOCAL_CPU_GB}"
 
 
 @app.cls(
@@ -577,7 +580,7 @@ trtllm_image = (
 )
 
 TRTLLM_LMCACHE_CONFIG_PATH = "/root/lmcache_trtllm_config.yaml"
-TRTLLM_LMCACHE_MAX_LOCAL_CPU_GB = "20"
+TRTLLM_LMCACHE_MAX_LOCAL_CPU_GB = f"{LMCACHE_MAX_LOCAL_CPU_GB}"
 TRTLLM_LMCACHE_CONFIG_YAML = """\
 kv_cache_config:
   enable_block_reuse: true
