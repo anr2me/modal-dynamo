@@ -1,6 +1,6 @@
 # Dynamo + LMCache on Modal: SGLang, vLLM, and TensorRT-LLM
 
-Serverless Qwen3-8B-FP8 inference on [Modal](https://modal.com), with each request served through [NVIDIA Dynamo](https://github.com/ai-dynamo/dynamo)'s frontend and a KV-cache offload layer. Three `@app.cls` services, one per inference backend, each on its own port:
+Serverless Qwen3.6-27B inference on [Modal](https://modal.com), with each request served through [NVIDIA Dynamo](https://github.com/ai-dynamo/dynamo)'s frontend and a KV-cache offload layer. Three `@app.cls` services, one per inference backend, each on its own port:
 
 | Class | Port | Backend | KV-cache offload |
 |---|---|---|---|
@@ -90,7 +90,7 @@ Key constants near the top of the file:
 
 | Constant | Default | Purpose |
 |---|---|---|
-| `MODEL_NAME` | `Qwen/Qwen3-8B-FP8` | Model to serve |
+| `MODEL_NAME` | `Qwen/Qwen3.6-27B-FP8` | Model to serve |
 | `MODEL_REVISION` | pinned commit hash | HF revision (SGLang/vLLM only — see note below) |
 | `N_GPUS` | `1` | GPUs per container (tensor-parallel size) |
 | `MAX_INPUTS` | `1000` | Max concurrent requests per replica |
