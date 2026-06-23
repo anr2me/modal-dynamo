@@ -25,19 +25,19 @@ None of the three get Dynamo's actual headline feature — KV-aware routing and 
 Each class runs **two subprocesses in one Modal container**:
 
 ```
-                 ┌─────────────────────────────────────┐
-  HTTP request   │ Modal container (1x H100 GPU)        │
- ───────────────►│                                       │
-                 │  dynamo.frontend  ──────────────────┐ │
-                 │  (OpenAI-compatible API, /health)   │ │
-                 │       │                             │ │
-                 │       ▼                             │ │
-                 │  dynamo.<sglang|vllm|trtllm>         │ │
-                 │  (inference engine + LMCache)        │ │
-                 │       │                             │ │
-                 │       ▼                             │ │
-                 │  CPU RAM (offloaded KV cache)        │ │
-                 └─────────────────────────────────────┘ │
+                    ┌────────────────────────────────┐
+  HTTP request      │ Modal container (1x H100 GPU)        │
+ ───────────────►│                                      │
+                    │  dynamo.frontend  ──────────────┐ │
+                    │  (OpenAI-compatible API, /health) │ │
+                    │       │                           │ │
+                    │       ▼                          │ │
+                    │  dynamo.<sglang|vllm|trtllm>      │ │
+                    │  (inference engine + LMCache)     │ │
+                    │       │                           │ │
+                    │       ▼                          │ │
+                    │  CPU RAM (offloaded KV cache)     │ │
+                    └──────────────────────────────┘ │
                           watchdog threads fate-share ────┘
                           both processes (see below)
 ```
@@ -51,7 +51,7 @@ Each class runs **two subprocesses in one Modal container**:
 ## Requirements
 
 - A [Modal](https://modal.com) account and the `modal` CLI (`pip install modal && modal setup`)
-- Enough GPU quota for at least one H100
+- Enough GPU quota for at least one L40S
 - For `DynamoTRTLLMLMCache`: patience — this build pulls LMCache's `dev` branch and may require building TensorRT-LLM from source if the base image doesn't already include [PR #12626](https://github.com/NVIDIA/TensorRT-LLM/pull/12626)
 
 ## Deploy
