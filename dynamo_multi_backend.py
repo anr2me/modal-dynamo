@@ -307,7 +307,7 @@ sglang_image = (
 sglang_image = sglang_image.run_function(
     compile_deep_gemm,
     volumes={DG_CACHE_PATH: DG_CACHE_VOL, HF_CACHE_PATH: HF_CACHE_VOL},
-    gpu=GPU,
+    #gpu=GPU,
     secrets=get_secrets(),
 )
 sglang_image = sglang_image.env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
