@@ -81,6 +81,9 @@ except ImportError:
     requests = None  # only relevant for local (non-container) import-time checks
 
 MINUTES = 60  # seconds
+IDLETIME = 2 * MINUTES
+
+MAX_CONTAINERS = 1
 
 MODEL_NAME = "Qwen/Qwen3.6-27B-FP8"
 MODEL_REVISION = (
@@ -299,6 +302,8 @@ max_local_cpu_size: {SGLANG_LMCACHE_MAX_LOCAL_CPU_GB}
 
 
 @app.cls(
+    max_containers=MAX_CONTAINERS,
+    scaledown_window=IDLETIME,
     image=sglang_image,
     gpu=GPU,
     volumes={HF_CACHE_PATH: HF_CACHE_VOL, DG_CACHE_PATH: DG_CACHE_VOL},
@@ -411,6 +416,8 @@ VLLM_LMCACHE_MAX_LOCAL_CPU_GB = "20"
 
 
 @app.cls(
+    max_containers=MAX_CONTAINERS,
+    scaledown_window=IDLETIME,
     image=vllm_image,
     gpu=GPU,
     volumes={HF_CACHE_PATH: HF_CACHE_VOL},
@@ -558,6 +565,8 @@ kv_connector_config:
 
 
 @app.cls(
+    max_containers=MAX_CONTAINERS,
+    scaledown_window=IDLETIME,
     image=trtllm_image,
     gpu=GPU,
     volumes={HF_CACHE_PATH: HF_CACHE_VOL},
