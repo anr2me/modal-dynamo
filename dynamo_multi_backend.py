@@ -140,12 +140,12 @@ def make_warmup(frontend_port: int, model_name: str):
             "max_tokens": 16,
             "model": model_name,
         }
-        #for _ in range(3):
-        requests.post(
-            f"http://127.0.0.1:{frontend_port}/v1/chat/completions",
-            json=payload,
-            #timeout=10,
-        ).raise_for_status()
+        for _ in range(3):
+            requests.post(
+                f"http://127.0.0.1:{frontend_port}/v1/chat/completions",
+                json=payload,
+                timeout=10,
+            ).raise_for_status()
 
     return warmup
 
@@ -292,7 +292,10 @@ def download_model():
 
     
 def compile_deep_gemm():
-    """Need at least sm_90, and might not work on Dense model"""
+    """
+    Compiling can take a long time, especially with torch compile enabled.
+    Need at least sm_90, and might not work well on Dense models.
+    """
     if int(os.environ.get("SGLANG_ENABLE_JIT_DEEPGEMM", "1")):
         subprocess.run(
             f"python3 -m sglang.compile_deep_gemm --model-path {MODEL_NAME} --revision {MODEL_REVISION} --tp {N_GPUS}",
@@ -340,20 +343,21 @@ sglang_image = (
     .run_commands("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     #.run_commands(f"find /root -wholename '/root/.cache/*'")
-    .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools~=80.10.2", "wheel", "setuptools-rust"])
+    .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools~=80.10.2", "wheel", "setuptools-rust", "distro"])
     .uv_pip_install(["numpy", "torch~=2.11.0", "torchvision~=0.26.0", "torchaudio~=2.11.0", "torchao~=0.17.0", "torchcodec~=0.11.1"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     #.uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
-    .uv_pip_install(["sglang[all]", "sgl-kernel", "sglang-kernel", "sgl-deep-gemm"], pre=True, extra_options="--torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
+    .uv_pip_install(["sglang[all]", "sgl-deep-gemm"], pre=True, extra_options="--torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
+    #.uv_pip_install(["sgl-kernel", "sglang-kernel"], pre=True, extra_options="--reinstall --no-deps --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
     #.uv_pip_install("ai-dynamo[sglang]", pre=True, extra_options="--torch-backend=cu130") # --no-deps
     .uv_pip_install(
         ["ai-dynamo[sglang]", "lmcache"], pre=True, extra_options="--torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130" #"--no-build-isolation --only-binary lmcache"
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
-    # Set to 0 on Dense model or GPU older than Hopper (need at least sm_90)
+    # Set to 0 on Dense model or GPU older than Hopper (need at least sm_90), use torch compile and cuda graph instead.
     .env({"SGLANG_ENABLE_JIT_DEEPGEMM": "0"})
 )
 # Make sure HF_CACHE_PATH doesn't exist before Volume mounted
