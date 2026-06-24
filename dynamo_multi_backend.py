@@ -83,9 +83,10 @@ except ImportError:
 MINUTES = 60  # seconds
 IDLETIME = 2 * MINUTES
 
-MODEL_NAME = "Qwen/Qwen3.6-27B-FP8"
+MODEL_NAME = "Qwen/Qwen3.6-35B-A3B-FP8" #"Qwen/Qwen3.6-27B-FP8"
 MODEL_REVISION = (
-    "e89b16ebf1988b3d6befa7de50abc2d76f26eb09"  # latest commit
+    "95a723d08a9490559dae23d0cff1d9466213d989"
+    #"e89b16ebf1988b3d6befa7de50abc2d76f26eb09"  # latest commit
 )
 
 HF_CACHE_VOL = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
@@ -95,7 +96,7 @@ DG_CACHE_VOL = modal.Volume.from_name("deepgemm-cache", create_if_missing=True)
 DG_CACHE_PATH = "/root/.cache/deep_gemm"
 
 N_GPUS = 1
-GPU = f"L40S:{N_GPUS}"
+GPU = f"H100:{N_GPUS}"
 
 TARGET_INPUTS = 10
 MAX_INPUTS = 1000
@@ -255,11 +256,48 @@ async def _send_request(
         print((await resp.json())["choices"][0]["message"]["content"])
 
 
+def download_model():
+    """Build-time step: pulls MODEL_NAME/MODEL_REVISION into HF_CACHE_VOL via
+    huggingface_hub, so the model is already on disk before any GPU
+    container starts. Without this, dynamo.<backend> downloads the model
+    lazily on first startup() - on a container that's already billing for
+    a live GPU - which is pure wasted GPU time for a multi-GB download.
+
+    Runs as a CPU-only build step (no `gpu=` kwarg on run_function below),
+    since downloading doesn't need a GPU. Each of the three images below
+    calls run_function(download_model, volumes={HF_CACHE_PATH: HF_CACHE_VOL})
+    separately (image builds can't share build steps across images), but
+    because all three mount the SAME Volume, only the first image to
+    actually run this step downloads anything over the network - for the
+    other two, snapshot_download's own on-disk cache check (it hashes/
+    checks existing files before re-fetching) finds the weights already in
+    HF_CACHE_VOL and returns almost immediately. This is independent of
+    Modal's own image-layer build cache, which may also skip re-running
+    this step entirely if nothing it depends on has changed.
+    See https://modal.com/docs/guide/images#run-a-python-function-during-
+    your-build-with-run_function and https://modal.com/docs/guide/model-
+    weights for Modal's own documentation of this pattern.
+    """
+    from huggingface_hub import snapshot_download
+
+    snapshot_download(
+        MODEL_NAME,
+        revision=MODEL_REVISION,
+        # Skip files inference engines don't need (training checkpoints,
+        # original fp32/bf16 weights if a quantized repo also ships them,
+        # etc.) - keeps the download smaller. Adjust/remove if a different
+        # MODEL_NAME ships files under different patterns.
+        ignore_patterns=["*.bin", "*.pth", "original/*", "*.gguf"],
+    )
+
+    
 def compile_deep_gemm():
+    """Need at least sm_90, and might not work on Dense model"""
     if int(os.environ.get("SGLANG_ENABLE_JIT_DEEPGEMM", "1")):
         subprocess.run(
             f"python3 -m sglang.compile_deep_gemm --model-path {MODEL_NAME} --revision {MODEL_REVISION} --tp {N_GPUS}",
             shell=True,
+            #capture_output=True,
         )
 
 
@@ -291,23 +329,47 @@ app = modal.App(name="dynamo")
 # 1) SGLang backend
 # =========================================================================
 sglang_image = (
-    modal.Image.from_registry("lmsysorg/sglang:v0.5.13.post1-runtime", add_python="3.12")
+    modal.Image.from_registry("lmsysorg/sglang:v0.5.13.post1-runtime", add_python="3.13")
     .entrypoint([])
+    .apt_install(["clang", "llvm"])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
-    .uv_pip_install("huggingface-hub>=0.36.0", "requests")
+    .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools", "wheel", "setuptools-rust"])
+    .uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
+    .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
+    .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
+    .uv_pip_install("uvloop")
+    .uv_pip_install("ai-dynamo[sglang]", pre=True, extra_options="--torch-backend=cu130 --no-deps")
     .uv_pip_install(
-        ["ai-dynamo[sglang]", "lmcache"], pre=True #, extra_options="--no-build-isolation" 
+        "lmcache", pre=True, extra_options="--no-build-isolation --no-deps" #" --only-binary lmcache"
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
+    # Set to 0 on Dense model or GPU older than Hopper (need at least sm_90)
     .env({"SGLANG_ENABLE_JIT_DEEPGEMM": "1"})
-    .env({"TORCH_CUDA_ARCH_LIST": "8.0;8.6;9.0;9.0a;10.0;10.0a;10.3"})
+)
+# Make sure HF_CACHE_PATH doesn't exist before Volume mounted
+sglang_image = sglang_image.run_commands(
+    f"rm -rf {HF_CACHE_PATH} || true" 
+)
+# Download the model BEFORE compile_deep_gemm: that step shells out to
+# `sglang.compile_deep_gemm --model-path ...`, which needs the model
+# weights already present. Putting download_model first means that
+# implicit download happens explicitly, on a CPU-only builder (no gpu=
+# kwarg), instead of silently inside the GPU-attached compile step below.
+sglang_image = sglang_image.run_function(
+    download_model,
+    volumes={HF_CACHE_PATH: HF_CACHE_VOL},
+    secrets=get_secrets(),
+)
+# Make sure DG_CACHE_PATH doesn't exist before Volume mounted
+sglang_image = sglang_image.run_commands(
+    f"rm -rf {DG_CACHE_PATH} || true" 
 )
 sglang_image = sglang_image.run_function(
     compile_deep_gemm,
     volumes={DG_CACHE_PATH: DG_CACHE_VOL, HF_CACHE_PATH: HF_CACHE_VOL},
-    #gpu=GPU,
+    gpu=GPU,
     secrets=get_secrets(),
 )
 sglang_image = sglang_image.env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
@@ -425,17 +487,33 @@ class DynamoSGLangLMCache:
 # which the connector reads directly - no separate YAML file needed here
 # (unlike the SGLang path).
 vllm_image = (
-    modal.Image.from_registry("vllm/vllm-openai:v0.23.0", add_python="3.12")
+    modal.Image.from_registry("vllm/vllm-openai:v0.23.0", add_python="3.13")
     .entrypoint([])
     .apt_install(["clang", "llvm"])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
-    .uv_pip_install("huggingface-hub>=0.36.0", "requests")
-    .uv_pip_install(["numpy", "torch~=2.11.0", "torchao~=0.17.0", "torchvision~=0.26.0", "torchaudio~=2.11.0"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
+    .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools", "wheel", "setuptools-rust"])
+    .uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
+    .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
+    .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
+    .uv_pip_install("uvloop")
+    .uv_pip_install("ai-dynamo[vllm]", pre=True, extra_options="--torch-backend=cu130 --no-deps")
     .uv_pip_install(
-        ["ai-dynamo[vllm]", "lmcache"], extra_options="--no-build-isolation --only-binary lmcache", pre=True
+        "lmcache", pre=True, extra_options="--no-build-isolation --no-deps" #" --only-binary lmcache"
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     .env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
+)
+# Make sure HF_CACHE_PATH doesn't exist before Volume mounted
+vllm_image = vllm_image.run_commands(
+    f"rm -rf {HF_CACHE_PATH} || true" 
+)
+# CPU-only build step (no gpu= kwarg) - downloads the model into
+# HF_CACHE_VOL during image build, so dynamo.vllm finds it already on disk
+# at container startup instead of downloading it on a live GPU container.
+vllm_image = vllm_image.run_function(
+    download_model,
+    volumes={HF_CACHE_PATH: HF_CACHE_VOL},
+    secrets=get_secrets(),
 )
 
 VLLM_KV_TRANSFER_CONFIG = (
@@ -569,18 +647,31 @@ class DynamoVLLMLMCache:
 # and an LMCache build with the c_ops extension (verify with
 # `python -c "import lmcache.c_ops"` inside the container).
 trtllm_image = (
-    modal.Image.from_registry("nvcr.io/nvidia/ai-dynamo/tensorrtllm-runtime:1.2.1", add_python="3.12")
+    modal.Image.from_registry("nvcr.io/nvidia/ai-dynamo/tensorrtllm-runtime:1.2.1", add_python="3.13")
     .entrypoint([])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
-    .uv_pip_install("huggingface-hub>=0.36.0", "requests")
+    .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools", "wheel", "setuptools-rust"])
+    .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
     # LMCache's TensorRT-LLM connector is only on the `dev` branch until
     # NVIDIA/TensorRT-LLM#12626 and the matching adapter ship stably.
-    #.uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", extra_options="--no-build-isolation", pre=True, gpu=GPU)
-    .uv_pip_install("lmcache", extra_options="--no-build-isolation", pre=True)
+    .uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", pre=True, extra_options="--no-build-isolation --no-deps") #, gpu=GPU
+    #.uv_pip_install("lmcache", pre=True, extra_options="--no-build-isolation --no-deps") #" --only-binary lmcache"
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # PYTHONHASHSEED=0 is required by LMCache's TRT-LLM adapter: chunk
     # hashing depends on a stable hash() across runs/processes.
     .env({"PYTHONHASHSEED": "0"})
+)
+# Make sure HF_CACHE_PATH doesn't exist before Volume mounted
+trtllm_image = trtllm_image.run_commands(
+    f"rm -rf {HF_CACHE_PATH} || true" 
+)
+# CPU-only build step (no gpu= kwarg) - same rationale as the SGLang/vLLM
+# images above: download the model into HF_CACHE_VOL at build time so
+# dynamo.trtllm never downloads it on a live, billed GPU container.
+trtllm_image = trtllm_image.run_function(
+    download_model,
+    volumes={HF_CACHE_PATH: HF_CACHE_VOL},
+    secrets=get_secrets(),
 )
 
 TRTLLM_LMCACHE_CONFIG_PATH = "/root/lmcache_trtllm_config.yaml"
@@ -709,7 +800,7 @@ async def test_trtllm(test_timeout=10 * MINUTES, prompt=None, twice=True):
 
 
 async def _run_test(cls_instance, test_timeout, prompt, twice):
-    url = cls_instance.serve.get_web_url()
+    url = await cls_instance.serve.get_web_url.aio()
 
     system_prompt = {
         "role": "system",
