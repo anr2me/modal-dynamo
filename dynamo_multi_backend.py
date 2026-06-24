@@ -140,12 +140,12 @@ def make_warmup(frontend_port: int, model_name: str):
             "max_tokens": 16,
             "model": model_name,
         }
-        for _ in range(3):
-            requests.post(
-                f"http://127.0.0.1:{frontend_port}/v1/chat/completions",
-                json=payload,
-                timeout=10,
-            ).raise_for_status()
+        #for _ in range(3):
+        requests.post(
+            f"http://127.0.0.1:{frontend_port}/v1/chat/completions",
+            json=payload,
+            #timeout=10,
+        ).raise_for_status()
 
     return warmup
 
@@ -329,24 +329,32 @@ app = modal.App(name="dynamo")
 # 1) SGLang backend
 # =========================================================================
 sglang_image = (
-    modal.Image.from_registry("lmsysorg/sglang:v0.5.13.post1-runtime", add_python="3.13")
+    modal.Image.from_registry("lmsysorg/sglang:latest-cu130-runtime", add_python="3.10") #v0.5.13.post1-runtime
     .entrypoint([])
-    .apt_install(["clang", "llvm"])
+    .apt_install(["clang", "llvm", "pkg-config", "libssl-dev"])
+    .env({
+        "PATH": "/root/.cargo/bin:$PATH",
+        "CARGO_REGISTRIES_CRATES_IO_PROTOCOL": "git",
+        "CARGO_HTTP_MULTIPLEXING": "false",
+    })
+    .run_commands("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
-    .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools", "wheel", "setuptools-rust"])
-    .uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
+    #.run_commands(f"find /root -wholename '/root/.cache/*'")
+    .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools~=80.10.2", "wheel", "setuptools-rust"])
+    .uv_pip_install(["numpy", "torch~=2.11.0", "torchvision~=0.26.0", "torchaudio~=2.11.0", "torchao~=0.17.0", "torchcodec~=0.11.1"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
+    #.uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
-    .uv_pip_install("uvloop")
-    .uv_pip_install("ai-dynamo[sglang]", pre=True, extra_options="--torch-backend=cu130 --no-deps")
+    .uv_pip_install(["sglang[all]", "sgl-kernel", "sglang-kernel", "sgl-deep-gemm"], pre=True, extra_options="--torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
+    #.uv_pip_install("ai-dynamo[sglang]", pre=True, extra_options="--torch-backend=cu130") # --no-deps
     .uv_pip_install(
-        "lmcache", pre=True, extra_options="--no-build-isolation --no-deps" #" --only-binary lmcache"
+        ["ai-dynamo[sglang]", "lmcache"], pre=True, extra_options="--torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130" #"--no-build-isolation --only-binary lmcache"
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # Set to 0 on Dense model or GPU older than Hopper (need at least sm_90)
-    .env({"SGLANG_ENABLE_JIT_DEEPGEMM": "1"})
+    .env({"SGLANG_ENABLE_JIT_DEEPGEMM": "0"})
 )
 # Make sure HF_CACHE_PATH doesn't exist before Volume mounted
 sglang_image = sglang_image.run_commands(
@@ -366,6 +374,7 @@ sglang_image = sglang_image.run_function(
 sglang_image = sglang_image.run_commands(
     f"rm -rf {DG_CACHE_PATH} || true" 
 )
+# TODO: Find out which pytorch version used to build sgl-kernel.
 sglang_image = sglang_image.run_function(
     compile_deep_gemm,
     volumes={DG_CACHE_PATH: DG_CACHE_VOL, HF_CACHE_PATH: HF_CACHE_VOL},
@@ -487,18 +496,18 @@ class DynamoSGLangLMCache:
 # which the connector reads directly - no separate YAML file needed here
 # (unlike the SGLang path).
 vllm_image = (
-    modal.Image.from_registry("vllm/vllm-openai:v0.23.0", add_python="3.13")
+    modal.Image.from_registry("vllm/vllm-openai:latest", add_python="3.13") #v0.23.0
     .entrypoint([])
     .apt_install(["clang", "llvm"])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools", "wheel", "setuptools-rust"])
-    .uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
+    .uv_pip_install(["numpy", "torch~=2.11.0", "torchvision~=0.26.0", "torchaudio~=2.11.0", "torchao~=0.17.0", "torchcodec~=0.11.1"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
+    #.uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
-    .uv_pip_install("uvloop")
-    .uv_pip_install("ai-dynamo[vllm]", pre=True, extra_options="--torch-backend=cu130 --no-deps")
+    .uv_pip_install("ai-dynamo[vllm]", pre=True, extra_options="--torch-backend=cu130") # --no-deps
     .uv_pip_install(
-        "lmcache", pre=True, extra_options="--no-build-isolation --no-deps" #" --only-binary lmcache"
+        "lmcache", pre=True, extra_options="--no-build-isolation" #" --no-deps --only-binary lmcache"
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     .env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
@@ -647,14 +656,14 @@ class DynamoVLLMLMCache:
 # and an LMCache build with the c_ops extension (verify with
 # `python -c "import lmcache.c_ops"` inside the container).
 trtllm_image = (
-    modal.Image.from_registry("nvcr.io/nvidia/ai-dynamo/tensorrtllm-runtime:1.2.1", add_python="3.13")
+    modal.Image.from_registry("nvcr.io/nvidia/ai-dynamo/tensorrtllm-runtime:1.2.1", add_python="3.13") #
     .entrypoint([])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools", "wheel", "setuptools-rust"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
     # LMCache's TensorRT-LLM connector is only on the `dev` branch until
     # NVIDIA/TensorRT-LLM#12626 and the matching adapter ship stably.
-    .uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", pre=True, extra_options="--no-build-isolation --no-deps") #, gpu=GPU
+    .uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", pre=True, extra_options="--no-build-isolation") # --no-deps #, gpu=GPU
     #.uv_pip_install("lmcache", pre=True, extra_options="--no-build-isolation --no-deps") #" --only-binary lmcache"
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # PYTHONHASHSEED=0 is required by LMCache's TRT-LLM adapter: chunk
