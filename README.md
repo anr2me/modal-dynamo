@@ -1,4 +1,4 @@
-# Dynamo + LMCache on Modal: SGLang, vLLM, and TensorRT-LLM
+# Dynamo + LMCache on Modal.com: SGLang, vLLM, and TensorRT-LLM
 
 Serverless Qwen3.6-27B inference on [Modal](https://modal.com), with each request served through [NVIDIA Dynamo](https://github.com/ai-dynamo/dynamo)'s frontend and a KV-cache offload layer. Three `@app.cls` services, one per inference backend, each on its own port:
 
