@@ -359,7 +359,7 @@ sglang_image = (
     .uv_pip_install(
         ["ai-dynamo[sglang]", "lmcache"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130" #"--no-build-isolation --only-binary lmcache"
     )
-    .run_commands("uv pip uninstall cupy cupy-wheel cupy-cuda12x cupy-cuda13x nixl-cu12 nixl-cu13")
+    .run_commands("uv pip uninstall --python $(command -v python) cupy cupy-wheel cupy-cuda12x cupy-cuda13x nixl-cu12 nixl-cu13")
     .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
     .uv_pip_install(["transformers", "kernels~=0.12.3"], extra_options="--upgrade")
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
