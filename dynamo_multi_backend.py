@@ -358,7 +358,10 @@ sglang_image = (
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # Set to 0 on Dense model or GPU older than Hopper (need at least sm_90), use torch compile and cuda graph instead.
-    .env({"SGLANG_ENABLE_JIT_DEEPGEMM": "0"})
+    .env({
+      "SGLANG_ENABLE_JIT_DEEPGEMM": "0",
+      "SGLANG_JIT_DEEPGEMM_FAST_WARMUP": "1",
+    })
 )
 # Make sure HF_CACHE_PATH doesn't exist before Volume mounted
 sglang_image = sglang_image.run_commands(
