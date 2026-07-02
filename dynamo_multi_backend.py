@@ -95,8 +95,9 @@ HF_CACHE_PATH = "/root/.cache/huggingface"
 DG_CACHE_VOL = modal.Volume.from_name("deepgemm-cache", create_if_missing=True)
 DG_CACHE_PATH = "/root/.cache/deep_gemm"
 
+GPU_TYPE = os.getenv("MODAL_GPU", "L40S") #"H100!"
 N_GPUS = 1
-GPU = f"H100:{N_GPUS}"
+GPU = f"{GPU_TYPE}:{N_GPUS}"
 
 TARGET_INPUTS = 10
 MAX_INPUTS = 1000
