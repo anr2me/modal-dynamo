@@ -348,6 +348,7 @@ sglang_image = (
     #.uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
+    .env({"SGL_KERNEL_ENABLE_BF16": "1"})
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
     .uv_pip_install(["sglang[all]", "sgl-deep-gemm", "sglang-kernel"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
