@@ -344,7 +344,7 @@ sglang_image = (
     .run_commands("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     #.run_commands(f"find /root -wholename '/root/.cache/*'")
-    .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools~=80.10.2", "wheel", "setuptools-rust", "distro", "kernels~=0.12.3"])
+    .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools~=80.10.2", "wheel", "setuptools-rust", "distro"])
     .uv_pip_install(["numpy", "torch~=2.11.0", "torchvision~=0.26.0", "torchaudio~=2.11.0", "torchao~=0.17.0", "torchcodec~=0.11.1"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     #.uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
@@ -358,6 +358,7 @@ sglang_image = (
     .uv_pip_install(
         ["ai-dynamo[sglang]", "lmcache"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130" #"--no-build-isolation --only-binary lmcache"
     )
+    .uv_pip_install(["transformers", "kernels~=0.12.3"], extra_options="--upgrade")
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # Set to 0 on Dense model or GPU older than Hopper (need at least sm_90), use torch compile and cuda graph instead.
     .env({
