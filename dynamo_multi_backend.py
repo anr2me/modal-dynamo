@@ -863,9 +863,17 @@ if __name__ == "__main__":
         # after deployment, we can use the class from anywhere
         SGLang = modal.Cls.from_name(app.name, "DynamoSGLangLMCache")
 
+        system_prompt = {
+            "role": "system",
+            "content": "You are a pirate who can't help but drop sly reminders that he went to Harvard.",
+        }
+        prompt = "Hello, who are you?"
+        content = [{"type": "text", "text": prompt}]
+        messages = [system_prompt, {"role": "user", "content": content}]
+
         print("Calling SGLang inference server...")
         try:
-            asyncio.run(probe(SGLang().serve.get_web_url(), timeout=30*MINUTES))
+            asyncio.run(probe(SGLang().serve.get_web_url(), MODEL_NAME, messages, timeout=30*MINUTES))
         except modal.exception.NotFoundError as e:
             raise Exception(
                 f"To take advantage of GPU snapshots, deploy first with: modal deploy {__file__}"
