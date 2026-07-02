@@ -335,7 +335,7 @@ app = modal.App(name="dynamo")
 sglang_image = (
     modal.Image.from_registry("lmsysorg/sglang:latest-cu130-runtime", add_python="3.10") # dev-cu13
     .entrypoint([])
-    .apt_install(["clang", "llvm", "pkg-config", "libssl-dev", "net-tools", "iproute2"])
+    .apt_install(["clang", "llvm", "pkg-config", "libssl-dev", "ffmpeg", "net-tools", "iproute2"])
     .run_commands(
         "ifconfig lo up" # Force standard initialization of loopback flags
     )
@@ -348,7 +348,7 @@ sglang_image = (
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     #.run_commands(f"find /root -wholename '/root/.cache/*'")
     .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools~=80.10.2", "wheel", "setuptools-rust", "distro"])
-    .uv_pip_install(["numpy", "torch~=2.11.0", "torchvision~=0.26.0", "torchaudio~=2.11.0", "torchao~=0.17.0", "torchcodec~=0.11.1"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
+    .uv_pip_install(["numpy", "torch~=2.11.0", "torchvision~=0.26.0", "torchaudio~=2.11.0", "torchao~=0.17.0", "torchcodec~=0.12.0"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     #.uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
