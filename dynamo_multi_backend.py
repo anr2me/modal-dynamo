@@ -83,10 +83,10 @@ except ImportError:
 MINUTES = 60  # seconds
 IDLETIME = 2 * MINUTES
 
-MODEL_NAME = "Qwen/Qwen3.6-35B-A3B-FP8" #"Qwen/Qwen3.6-27B-FP8"
+MODEL_NAME = "Qwen/Qwen3.6-27B-FP8" #"Qwen/Qwen3.6-35B-A3B-FP8" 
 MODEL_REVISION = (
-    "95a723d08a9490559dae23d0cff1d9466213d989"
-    #"e89b16ebf1988b3d6befa7de50abc2d76f26eb09"  # latest commit
+    "e89b16ebf1988b3d6befa7de50abc2d76f26eb09"  # latest "Qwen/Qwen3.6-27B-FP8"
+    #"95a723d08a9490559dae23d0cff1d9466213d989" # latest "Qwen/Qwen3.6-35B-A3B-FP8"
 )
 
 HF_CACHE_VOL = modal.Volume.from_name("huggingface-cache", create_if_missing=True)
