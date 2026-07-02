@@ -856,3 +856,18 @@ async def _run_test(cls_instance, test_timeout, prompt, twice):
         messages[0]["content"] = "You are Jar Jar Binks."
         print(f"Sending messages to {url}:", *messages, sep="\n\t")
         await probe(url, MODEL_NAME, messages, timeout=1 * MINUTES)
+
+
+if __name__ == "__main__":
+    with modal.enable_output():
+        # after deployment, we can use the class from anywhere
+        SGLang = modal.Cls.from_name(app.name, "DynamoSGLangLMCache")
+
+        print("Calling SGLang inference server...")
+        try:
+            asyncio.run(probe(SGLang().serve.get_web_url(), timeout=30*MINUTES))
+        except modal.exception.NotFoundError as e:
+            raise Exception(
+                f"To take advantage of GPU snapshots, deploy first with: modal deploy {__file__}"
+            ) from e
+          
