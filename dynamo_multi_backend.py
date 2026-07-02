@@ -332,7 +332,7 @@ app = modal.App(name="dynamo")
 # 1) SGLang backend
 # =========================================================================
 sglang_image = (
-    modal.Image.from_registry("lmsysorg/sglang:latest-cu130-runtime", add_python="3.10") #v0.5.13.post1-runtime
+    modal.Image.from_registry("lmsysorg/sglang:latest-cu130-runtime", add_python="3.10") # dev-cu13
     .entrypoint([])
     .apt_install(["clang", "llvm", "pkg-config", "libssl-dev"])
     .env({
@@ -350,11 +350,11 @@ sglang_image = (
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
-    .uv_pip_install(["sglang[all]", "sgl-deep-gemm"], pre=True, extra_options="--torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
-    #.uv_pip_install(["sgl-kernel", "sglang-kernel"], pre=True, extra_options="--reinstall --no-deps --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
+    .uv_pip_install(["sglang[all]", "sgl-deep-gemm", "sglang-kernel"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
+    #.uv_pip_install(["sgl-kernel"], pre=True, extra_options="--reinstall --no-deps --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
     #.uv_pip_install("ai-dynamo[sglang]", pre=True, extra_options="--torch-backend=cu130") # --no-deps
     .uv_pip_install(
-        ["ai-dynamo[sglang]", "lmcache"], pre=True, extra_options="--torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130" #"--no-build-isolation --only-binary lmcache"
+        ["ai-dynamo[sglang]", "lmcache"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130" #"--no-build-isolation --only-binary lmcache"
     )
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # Set to 0 on Dense model or GPU older than Hopper (need at least sm_90), use torch compile and cuda graph instead.
