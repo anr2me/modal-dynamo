@@ -144,7 +144,7 @@ def make_warmup(frontend_port: int, model_name: str):
             requests.post(
                 f"http://127.0.0.1:{frontend_port}/v1/chat/completions",
                 json=payload,
-                timeout=10,
+                timeout=5 * MINUTES,
             ).raise_for_status()
 
     return warmup
@@ -474,13 +474,19 @@ class DynamoSGLangLMCache:
 
         start_crash_watchdog(self.frontend_process, self.worker_process)
 
-        wait_ready(self.frontend_process, SGLANG_FRONTEND_PORT)
-        make_warmup(SGLANG_FRONTEND_PORT, MODEL_NAME)()
-        make_sleep(SGLANG_SYSTEM_PORT)()
+        try:
+            wait_ready(self.frontend_process, SGLANG_FRONTEND_PORT)
+            make_warmup(SGLANG_FRONTEND_PORT, MODEL_NAME)()
+            make_sleep(SGLANG_SYSTEM_PORT)()
+        except Exception as e:
+            print(f"startup Throw: {e!r}")
 
     @modal.enter(snap=False)
-    def wake_up_(self):
-        make_wake_up(SGLANG_SYSTEM_PORT)()
+    def restore(self):
+        try:
+            make_wake_up(SGLANG_SYSTEM_PORT)()
+        except Exception as e:
+            print(f"restore Throw: {e!r}") 
 
     @modal.web_server(port=SGLANG_FRONTEND_PORT, startup_timeout=10 * MINUTES)
     def serve(self):
@@ -604,13 +610,19 @@ class DynamoVLLMLMCache:
 
         start_crash_watchdog(self.frontend_process, self.worker_process)
 
-        wait_ready(self.frontend_process, VLLM_FRONTEND_PORT)
-        make_warmup(VLLM_FRONTEND_PORT, MODEL_NAME)()
-        make_sleep(VLLM_SYSTEM_PORT)()
+        try:
+            wait_ready(self.frontend_process, VLLM_FRONTEND_PORT)
+            make_warmup(VLLM_FRONTEND_PORT, MODEL_NAME)()
+            make_sleep(VLLM_SYSTEM_PORT)()
+        except Exception as e:
+            print(f"startup Throw: {e!r}")
 
     @modal.enter(snap=False)
-    def wake_up_(self):
-        make_wake_up(VLLM_SYSTEM_PORT)()
+    def restore(self):
+        try:
+            make_wake_up(VLLM_SYSTEM_PORT)()
+        except Exception as e:
+            print(f"restore Throw: {e!r}")
 
     @modal.web_server(port=VLLM_FRONTEND_PORT, startup_timeout=10 * MINUTES)
     def serve(self):
@@ -779,13 +791,19 @@ class DynamoTRTLLMLMCache:
 
         start_crash_watchdog(self.frontend_process, self.worker_process)
 
-        wait_ready(self.frontend_process, TRTLLM_FRONTEND_PORT)
-        make_warmup(TRTLLM_FRONTEND_PORT, MODEL_NAME)()
-        make_sleep(TRTLLM_SYSTEM_PORT)()
+        try:
+            wait_ready(self.frontend_process, TRTLLM_FRONTEND_PORT)
+            make_warmup(TRTLLM_FRONTEND_PORT, MODEL_NAME)()
+            make_sleep(TRTLLM_SYSTEM_PORT)()
+        except Exception as e:
+            print(f"startup Throw: {e!r}")
 
     @modal.enter(snap=False)
-    def wake_up_(self):
-        make_wake_up(TRTLLM_SYSTEM_PORT)()
+    def restore(self):
+        try:
+            make_wake_up(TRTLLM_SYSTEM_PORT)()
+        except Exception as e:
+            print(f"restore Throw: {e!r}")
 
     @modal.web_server(port=TRTLLM_FRONTEND_PORT, startup_timeout=10 * MINUTES)
     def serve(self):
