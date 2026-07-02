@@ -335,7 +335,10 @@ app = modal.App(name="dynamo")
 sglang_image = (
     modal.Image.from_registry("lmsysorg/sglang:latest-cu130-runtime", add_python="3.10") # dev-cu13
     .entrypoint([])
-    .apt_install(["clang", "llvm", "pkg-config", "libssl-dev"])
+    .apt_install(["clang", "llvm", "pkg-config", "libssl-dev", "net-tools", "iproute2"])
+    .run_commands(
+        "ifconfig lo up" # Force standard initialization of loopback flags
+    )
     .env({
         "PATH": "/root/.cargo/bin:$PATH",
         "CARGO_REGISTRIES_CRATES_IO_PROTOCOL": "git",
@@ -350,6 +353,7 @@ sglang_image = (
     .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
     .env({"SGLANG_KERNEL_ENABLE_BF16": "1"})
+    .env({"HUGGING_FACE_HUB_DISABLE_TELEMETRY": "1", "AIOHTTP_NO_EXTENSIONS": "1"})
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
     .uv_pip_install(["sglang[all]", "sgl-deep-gemm", "sglang-kernel"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
