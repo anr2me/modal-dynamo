@@ -540,7 +540,7 @@ vllm_image = (
     .uv_pip_install(["transformers", "kernels~=0.12.3"], extra_options="--upgrade")
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     .env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
-    .env({"VLLM_HOST_IP": "0.0.0.0", "DYN_SYSTEM_PORT": 8081})
+    .env({"VLLM_HOST_IP": "0.0.0.0", "DYN_SYSTEM_PORT": "8081"})
 )
 # Make sure HF_CACHE_PATH doesn't exist before Volume mounted
 vllm_image = vllm_image.run_commands(
