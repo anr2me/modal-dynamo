@@ -784,7 +784,7 @@ class DynamoTRTLLMLMCache:
             # TensorRT-LLM/Dynamo version's --help output first.
             "--served-model-name",
             MODEL_NAME,
-            "--host",
+            "--ip",
             "0.0.0.0",
             "--discovery-backend",
             "file",
