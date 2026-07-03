@@ -237,7 +237,14 @@ async def probe(url, model_name, messages=None, timeout=5 * MINUTES):
             try:
                 await _send_request(session, model_name, messages)
                 return
-            except asyncio.TimeoutError:
+            except aiohttp.ClientResponseError as e:
+                if e.status < 500 and e.status != 404:
+                    raise  # client error (4xx), retrying won't fix it
+                print(f"Retrying after server error: {e!r}")
+                await asyncio.sleep(1)
+            except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+                # request timeout, connection refused, disconnected, etc.
+                print(f"Retrying after error: {e!r}")
                 await asyncio.sleep(1)
     raise TimeoutError(f"No response from server within {timeout} seconds")
 
@@ -335,8 +342,8 @@ app = modal.App(name="dynamo")
 sglang_image = (
     modal.Image.from_registry("lmsysorg/sglang:latest-cu130-runtime", add_python="3.10") # dev-cu13
     .entrypoint([])
-    .apt_install(["clang", "llvm", "pkg-config", "libssl-dev", "ffmpeg", "net-tools", "iproute2"])
-    #.run_commands("ifconfig lo up") # Force standard initialization of loopback flags
+    .apt_install(["clang", "llvm", "pkg-config", "libssl-dev", "ffmpeg"]) #, "net-tools", "iproute2" 
+    #.run_commands("ifconfig lo up") # Force standard initialization of loopback flags (need "net-tools" & "iproute2")
     .env({
         "PATH": "/root/.cargo/bin:$PATH",
         "CARGO_REGISTRIES_CRATES_IO_PROTOCOL": "git",
@@ -353,12 +360,12 @@ sglang_image = (
     .env({"HUGGING_FACE_HUB_DISABLE_TELEMETRY": "1", "AIOHTTP_NO_EXTENSIONS": "1", "TRANSFORMERS_OFFLINE": "1"})
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
-    .uv_pip_install(["sglang[all]", "sgl-deep-gemm", "sglang-kernel"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
-    #.uv_pip_install(["sgl-kernel"], pre=True, extra_options="--reinstall --no-deps --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
-    #.uv_pip_install("ai-dynamo[sglang]", pre=True, extra_options="--torch-backend=cu130") # --no-deps
     .uv_pip_install(
         ["ai-dynamo[sglang]", "lmcache"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130" #"--no-build-isolation --only-binary lmcache"
     )
+    .uv_pip_install(["sglang[all]", "sgl-deep-gemm", "sglang-kernel"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
+    #.uv_pip_install(["sgl-kernel"], pre=True, extra_options="--reinstall --no-deps --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
+    #.uv_pip_install("ai-dynamo[sglang]", pre=True, extra_options="--torch-backend=cu130") # --no-deps
     .run_commands("uv pip uninstall --python $(command -v python) cupy cupy-wheel cupy-cuda12x cupy-cuda13x nixl-cu12 nixl-cu13")
     .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
     .uv_pip_install(["transformers", "kernels~=0.12.3"], extra_options="--upgrade")
