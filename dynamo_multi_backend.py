@@ -698,14 +698,14 @@ trtllm_image = (
     .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools", "wheel", "setuptools-rust"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
     .env({"HUGGING_FACE_HUB_DISABLE_TELEMETRY": "1", "AIOHTTP_NO_EXTENSIONS": "1", "TRANSFORMERS_OFFLINE": "1"})
-    .env({"UCX_TLS": "tcp,sockcm", "UCX_LOG_LEVEL": "ERROR"})
+    #.env({"UCX_TLS": "tcp,sockcm", "UCX_LOG_LEVEL": "ERROR"})
     # LMCache's TensorRT-LLM connector is only on the `dev` branch until
     # NVIDIA/TensorRT-LLM#12626 and the matching adapter ship stably.
     .uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", pre=True, extra_options="--no-build-isolation") # --no-deps #, gpu=GPU
     #.uv_pip_install("lmcache", pre=True, extra_options="--no-build-isolation --no-deps") #" --only-binary lmcache"
     .uv_pip_install(["tensorrt_llm"], pre=True, extra_options="--no-build-isolation --upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://pypi.nvidia.com --extra-index-url https://download.pytorch.org/whl/cu130")
     .uv_pip_install(["torchao~=0.17.0"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130")
-    .uv_pip_install(["transformers", "kernels~=0.12.3", "mpmath<1.4.0", "sympy"], extra_options="--upgrade") # "transformers>=4.45.0,<5.0.0"
+    .uv_pip_install(["nvidia-modelopt[hf]", "kernels~=0.12.3", "mpmath<1.4.0", "sympy"], extra_options="--upgrade") # "transformers>=4.45.0,<5.0.0"
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # PYTHONHASHSEED=0 is required by LMCache's TRT-LLM adapter: chunk
     # hashing depends on a stable hash() across runs/processes.
@@ -788,7 +788,7 @@ class DynamoTRTLLMLMCache:
             # TensorRT-LLM/Dynamo version's --help output first.
             "--served-model-name",
             MODEL_NAME,
-            "--ip",
+            "--host", # --ip
             "0.0.0.0",
             "--discovery-backend",
             "file",
