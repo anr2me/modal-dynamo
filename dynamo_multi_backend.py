@@ -340,7 +340,7 @@ app = modal.App(name="dynamo")
 # 1) SGLang backend
 # =========================================================================
 sglang_image = (
-    modal.Image.from_registry("lmsysorg/sglang:latest-cu130-runtime", add_python="3.10") # dev-cu13
+    modal.Image.from_registry("lmsysorg/sglang:dev-cu13-runtime", add_python="3.10") # latest-cu130-runtime
     .entrypoint([])
     .apt_install(["clang", "llvm", "pkg-config", "libssl-dev", "ffmpeg", "libnuma-dev"]) #, "net-tools", "iproute2" 
     #.run_commands("ifconfig lo up") # Force standard initialization of loopback flags (need "net-tools" & "iproute2")
@@ -353,7 +353,7 @@ sglang_image = (
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     #.run_commands(f"find /root -wholename '/root/.cache/*'")
     .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools~=80.10.2", "wheel", "setuptools-rust", "distro"])
-    .uv_pip_install(["numpy", "torch~=2.11.0", "torchvision~=0.26.0", "torchaudio~=2.11.0", "torchao~=0.17.0", "torchcodec~=0.12.0"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
+    .uv_pip_install(["numpy", "torch~=2.11.0", "torchvision~=0.26.0", "torchaudio~=2.11.0", "torchao~=0.17.0", "torchcodec~=0.11.1"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     #.uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
     .env({"SGLANG_KERNEL_ENABLE_BF16": "1"})
@@ -524,17 +524,20 @@ class DynamoSGLangLMCache:
 vllm_image = (
     modal.Image.from_registry("vllm/vllm-openai:latest", add_python="3.13") #v0.23.0
     .entrypoint([])
-    .apt_install(["clang", "llvm"])
+    .apt_install(["clang", "llvm", "pkg-config", "libssl-dev", "ffmpeg", "libnuma-dev"])
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools", "wheel", "setuptools-rust"])
     .uv_pip_install(["numpy", "torch~=2.11.0", "torchvision~=0.26.0", "torchaudio~=2.11.0", "torchao~=0.17.0", "torchcodec~=0.11.1"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     #.uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
-    .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
+    .env({"HUGGING_FACE_HUB_DISABLE_TELEMETRY": "1", "AIOHTTP_NO_EXTENSIONS": "1", "TRANSFORMERS_OFFLINE": "1"})
     .uv_pip_install("ai-dynamo[vllm]", pre=True, extra_options="--torch-backend=cu130") # --no-deps
     .uv_pip_install(
         "lmcache", pre=True, extra_options="--no-build-isolation" #" --no-deps --only-binary lmcache"
     )
+    .run_commands("uv pip uninstall --python $(command -v python) cupy cupy-wheel cupy-cuda12x cupy-cuda13x nixl-cu12 nixl-cu13")
+    .uv_pip_install(["cupy-cuda13x", "nixl-cu13"])
+    .uv_pip_install(["transformers", "kernels~=0.12.3"], extra_options="--upgrade")
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     .env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
 )
@@ -693,6 +696,7 @@ trtllm_image = (
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools", "wheel", "setuptools-rust"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
+    .env({"HUGGING_FACE_HUB_DISABLE_TELEMETRY": "1", "AIOHTTP_NO_EXTENSIONS": "1", "TRANSFORMERS_OFFLINE": "1"})
     # LMCache's TensorRT-LLM connector is only on the `dev` branch until
     # NVIDIA/TensorRT-LLM#12626 and the matching adapter ship stably.
     .uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", pre=True, extra_options="--no-build-isolation") # --no-deps #, gpu=GPU
