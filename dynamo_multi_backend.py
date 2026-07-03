@@ -361,7 +361,7 @@ sglang_image = (
     # --prerelease=allow is required by lmcache's SGLang integration
     # per LMCache's own quickstart docs.
     .uv_pip_install(
-        ["ai-dynamo[sglang]", "lmcache"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130" #"--no-build-isolation --only-binary lmcache"
+        ["ai-dynamo[sglang]", "lmcache"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://pypi.nvidia.com --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130" #"--no-build-isolation --only-binary lmcache"
     )
     .uv_pip_install(["sglang[all]", "sgl-deep-gemm", "sglang-kernel"], pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
     #.uv_pip_install(["sgl-kernel"], pre=True, extra_options="--reinstall --no-deps --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://docs.sglang.ai/whl/cu130 --extra-index-url https://download.pytorch.org/whl/cu130")
