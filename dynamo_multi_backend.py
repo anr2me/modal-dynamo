@@ -427,6 +427,7 @@ max_local_cpu_size: {SGLANG_LMCACHE_MAX_LOCAL_CPU_GB}
     enable_memory_snapshot=True,
     experimental_options={"enable_gpu_snapshot": True},
     secrets=get_secrets(),
+    env={"VLLM_HOST_IP": "0.0.0.0", "DYN_SYSTEM_PORT": 8081}
 )
 @modal.concurrent(target_inputs=TARGET_INPUTS, max_inputs=MAX_INPUTS)
 class DynamoSGLangLMCache:
@@ -463,8 +464,8 @@ class DynamoSGLangLMCache:
             MODEL_REVISION,
             "--served-model-name",
             MODEL_NAME,
-            "--host",
-            "0.0.0.0",
+            #"--host", #--master-addr
+            #"0.0.0.0",
             "--discovery-backend",
             "file",
             "--tp",
@@ -473,7 +474,7 @@ class DynamoSGLangLMCache:
             f"{MAX_INPUTS}",
             "--max-running-requests",
             f"{MAX_INPUTS}",
-            "--enable-metrics",
+            #"--enable-metrics",
             "--enable-memory-saver",  # enable offload, for snapshotting
             "--enable-weights-cpu-backup",  # enable offload, for snapshotting
             "--enable-lmcache",
