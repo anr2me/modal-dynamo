@@ -340,7 +340,7 @@ app = modal.App(name="dynamo")
 # 1) SGLang backend
 # =========================================================================
 sglang_image = (
-    modal.Image.from_registry("lmsysorg/sglang:dev-cu13-runtime", add_python="3.10") # latest-cu130-runtime
+    modal.Image.from_registry("lmsysorg/sglang:dev-cu13", add_python="3.10") # latest-cu130-runtime
     .entrypoint([])
     .apt_install(["clang", "llvm", "pkg-config", "libssl-dev", "ffmpeg", "libnuma-dev"]) #, "net-tools", "iproute2" 
     #.run_commands("ifconfig lo up") # Force standard initialization of loopback flags (need "net-tools" & "iproute2")
@@ -531,7 +531,7 @@ vllm_image = (
     #.uv_pip_install(["numpy", "torch", "torchvision", "torchaudio", "torchao"], extra_options="--upgrade", index_url="https://download.pytorch.org/whl/cu130") # xformers
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
     .env({"HUGGING_FACE_HUB_DISABLE_TELEMETRY": "1", "AIOHTTP_NO_EXTENSIONS": "1", "TRANSFORMERS_OFFLINE": "1"})
-    .uv_pip_install("ai-dynamo[vllm]", pre=True, extra_options="--torch-backend=cu130") # --no-deps
+    .uv_pip_install("ai-dynamo[vllm]", pre=True, extra_options="--upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://pypi.nvidia.com --extra-index-url https://wheels.vllm.ai/nightly/cu130 --extra-index-url https://download.pytorch.org/whl/cu130") # --no-deps
     .uv_pip_install(
         "lmcache", pre=True, extra_options="--no-build-isolation" #" --no-deps --only-binary lmcache"
     )
