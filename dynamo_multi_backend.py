@@ -703,8 +703,8 @@ trtllm_image = (
     # NVIDIA/TensorRT-LLM#12626 and the matching adapter ship stably.
     .uv_pip_install("git+https://github.com/LMCache/LMCache.git@dev", pre=True, extra_options="--no-build-isolation") # --no-deps #, gpu=GPU
     #.uv_pip_install("lmcache", pre=True, extra_options="--no-build-isolation --no-deps") #" --only-binary lmcache"
-    .uv_pip_install(["tensorrt_llm"], pre=True, extra_options="--no-build-isolation --upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://pypi.nvidia.com --extra-index-url https://download.pytorch.org/whl/cu130")
-    .uv_pip_install(["transformers>=4.45.0,<5.0.0", "kernels~=0.12.3", "mpmath<1.4.0", "sympy"], extra_options="--upgrade")
+    .uv_pip_install(["tensorrt_llm", "torchao~=0.17.0"], pre=True, extra_options="--no-build-isolation --upgrade --torch-backend=cu130 --index-strategy unsafe-best-match --extra-index-url https://pypi.nvidia.com --extra-index-url https://download.pytorch.org/whl/cu130")
+    .uv_pip_install(["transformers", "kernels~=0.12.3", "mpmath<1.4.0", "sympy"], extra_options="--upgrade") # "transformers>=4.45.0,<5.0.0"
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # PYTHONHASHSEED=0 is required by LMCache's TRT-LLM adapter: chunk
     # hashing depends on a stable hash() across runs/processes.
