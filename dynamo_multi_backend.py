@@ -427,7 +427,6 @@ max_local_cpu_size: {SGLANG_LMCACHE_MAX_LOCAL_CPU_GB}
     enable_memory_snapshot=True,
     experimental_options={"enable_gpu_snapshot": True},
     secrets=get_secrets(),
-    env={"VLLM_HOST_IP": "0.0.0.0", "DYN_SYSTEM_PORT": 8081}
 )
 @modal.concurrent(target_inputs=TARGET_INPUTS, max_inputs=MAX_INPUTS)
 class DynamoSGLangLMCache:
@@ -464,8 +463,8 @@ class DynamoSGLangLMCache:
             MODEL_REVISION,
             "--served-model-name",
             MODEL_NAME,
-            #"--host", #--master-addr
-            #"0.0.0.0",
+            "--host", #--master-addr
+            "0.0.0.0",
             "--discovery-backend",
             "file",
             "--tp",
@@ -474,7 +473,7 @@ class DynamoSGLangLMCache:
             f"{MAX_INPUTS}",
             "--max-running-requests",
             f"{MAX_INPUTS}",
-            #"--enable-metrics",
+            "--enable-metrics",
             "--enable-memory-saver",  # enable offload, for snapshotting
             "--enable-weights-cpu-backup",  # enable offload, for snapshotting
             "--enable-lmcache",
@@ -541,6 +540,7 @@ vllm_image = (
     .uv_pip_install(["transformers", "kernels~=0.12.3"], extra_options="--upgrade")
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     .env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
+    .env({"VLLM_HOST_IP": "0.0.0.0", "DYN_SYSTEM_PORT": 8081})
 )
 # Make sure HF_CACHE_PATH doesn't exist before Volume mounted
 vllm_image = vllm_image.run_commands(
@@ -602,15 +602,15 @@ class DynamoVLLMLMCache:
             MODEL_REVISION,
             "--served-model-name",
             MODEL_NAME,
-            "--host",
-            "0.0.0.0",
+            #"--host", #--master-addr
+            #"0.0.0.0",
             "--discovery-backend",
             "file",
             "--tensor-parallel-size",
             f"{N_GPUS}",
             "--max-num-seqs",
             f"{MAX_INPUTS}",
-            "--enable-metrics",
+            #"--enable-metrics",
             "--kv-transfer-config",
             VLLM_KV_TRANSFER_CONFIG,
         ]
