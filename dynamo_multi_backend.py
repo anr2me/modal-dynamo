@@ -238,7 +238,7 @@ async def probe(url, model_name, messages=None, timeout=5 * MINUTES):
                 await _send_request(session, model_name, messages)
                 return
             except aiohttp.ClientResponseError as e:
-                if e.status < 500 and e.status != 404:
+                if e.status < 500: # and e.status != 404 
                     raise  # client error (4xx), retrying won't fix it
                 print(f"Retrying after server error: {e!r}")
                 await asyncio.sleep(1)
