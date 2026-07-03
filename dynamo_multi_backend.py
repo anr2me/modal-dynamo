@@ -342,7 +342,7 @@ app = modal.App(name="dynamo")
 sglang_image = (
     modal.Image.from_registry("lmsysorg/sglang:latest-cu130-runtime", add_python="3.10") # dev-cu13
     .entrypoint([])
-    .apt_install(["clang", "llvm", "pkg-config", "libssl-dev", "ffmpeg"]) #, "net-tools", "iproute2" 
+    .apt_install(["clang", "llvm", "pkg-config", "libssl-dev", "ffmpeg", "libnuma-dev"]) #, "net-tools", "iproute2" 
     #.run_commands("ifconfig lo up") # Force standard initialization of loopback flags (need "net-tools" & "iproute2")
     .env({
         "PATH": "/root/.cargo/bin:$PATH",
