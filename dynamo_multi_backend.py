@@ -691,7 +691,7 @@ class DynamoVLLMLMCache:
 # and an LMCache build with the c_ops extension (verify with
 # `python -c "import lmcache.c_ops"` inside the container).
 trtllm_image = (
-    modal.Image.from_registry("nvcr.io/nvidia/ai-dynamo/tensorrtllm-runtime:1.2.1", add_python="3.13") #
+    modal.Image.from_registry("nvcr.io/nvidia/ai-dynamo/tensorrtllm-runtime:1.2.1")#, add_python="3.13") #
     .entrypoint([])
     .apt_install("openmpi-bin", "libopenmpi-dev") # Crucial for UCX/MPI bindings
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
