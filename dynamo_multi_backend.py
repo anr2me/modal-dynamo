@@ -484,7 +484,7 @@ class DynamoSGLangLMCache:
             "--enable-metrics",
             "--enable-memory-saver",  # enable offload, for snapshotting
             "--enable-weights-cpu-backup",  # enable offload, for snapshotting
-            "--enable-lmcache",
+            #"--enable-lmcache",
         ]
         worker_env = {
             **os.environ,
