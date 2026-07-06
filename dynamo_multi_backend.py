@@ -439,7 +439,6 @@ max_local_cpu_size: {SGLANG_LMCACHE_MAX_LOCAL_CPU_GB}
     enable_memory_snapshot=True,
     experimental_options={"enable_gpu_snapshot": True},
     secrets=get_secrets(),
-    network_mode="host", # needed for discovery watcher
 )
 @modal.concurrent(target_inputs=TARGET_INPUTS, max_inputs=MAX_INPUTS)
 class DynamoSGLangLMCache:
