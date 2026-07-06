@@ -372,8 +372,16 @@ sglang_image = (
     .env({"HF_HUB_CACHE": HF_CACHE_PATH, "HF_XET_HIGH_PERFORMANCE": "1"})
     # Set to 0 on Dense model or GPU older than Hopper (need at least sm_90), use torch compile and cuda graph instead.
     .env({
-      "SGLANG_ENABLE_JIT_DEEPGEMM": "0",
-      "SGLANG_JIT_DEEPGEMM_FAST_WARMUP": "1",
+        "SGLANG_ENABLE_JIT_DEEPGEMM": "0",
+        "SGLANG_JIT_DEEPGEMM_FAST_WARMUP": "1",
+    })
+    .env({
+        # Forces Dynamo and Rust-based engines to bypass Netlink strategies 
+        "DYNAMO_HOST": "0.0.0.0",
+        "LOCAL_IP": "127.0.0.1", 
+        "DYNAMO_BIND_ADDRESS": "0.0.0.0",
+        # If using Ray or LMCache multi-node properties, map to loopback
+        "RAY_PUBLIC_CHANNELS": "127.0.0.1", 
     })
 )
 # Make sure HF_CACHE_PATH doesn't exist before Volume mounted
