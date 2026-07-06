@@ -469,7 +469,7 @@ class DynamoSGLangLMCache:
             "file",
             "--tp",
             f"{N_GPUS}",
-            "--cuda-graph-max-bs",
+            "--cuda-graph-max-bs-decode",
             f"{MAX_INPUTS}",
             "--max-running-requests",
             f"{MAX_INPUTS}",
