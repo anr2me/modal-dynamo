@@ -114,11 +114,11 @@ LMCACHE_MAX_LOCAL_CPU_GB = 20
 SGLANG_FRONTEND_PORT = 8000
 SGLANG_SYSTEM_PORT = 8081
 
-VLLM_FRONTEND_PORT = 8001
-VLLM_SYSTEM_PORT = 8082
+VLLM_FRONTEND_PORT = 8000
+VLLM_SYSTEM_PORT = 8081
 
-TRTLLM_FRONTEND_PORT = 8002
-TRTLLM_SYSTEM_PORT = 8083
+TRTLLM_FRONTEND_PORT = 8000
+TRTLLM_SYSTEM_PORT = 8081
 
 
 # =========================================================================
@@ -463,8 +463,8 @@ class DynamoSGLangLMCache:
             MODEL_REVISION,
             "--served-model-name",
             MODEL_NAME,
-            "--host", #--master-addr
-            "0.0.0.0",
+            #"--host", #--master-addr
+            #"0.0.0.0",
             "--discovery-backend",
             "file",
             "--tp",
@@ -558,6 +558,9 @@ vllm_image = vllm_image.run_function(
 VLLM_KV_TRANSFER_CONFIG = (
     '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}'
 )
+VLLM_KV_EVENTS_CONFIG = (
+    '{"enable_kv_cache_events": false}' # avoids NATS
+)
 VLLM_LMCACHE_MAX_LOCAL_CPU_GB = f"{LMCACHE_MAX_LOCAL_CPU_GB}"
 
 
@@ -613,6 +616,8 @@ class DynamoVLLMLMCache:
             #"--enable-metrics",
             "--kv-transfer-config",
             VLLM_KV_TRANSFER_CONFIG,
+            "--kv-events-config",
+            VLLM_KV_EVENTS_CONFIG,
         ]
         worker_env = {
             **os.environ,
@@ -694,7 +699,7 @@ class DynamoVLLMLMCache:
 trtllm_image = (
     modal.Image.from_registry("nvcr.io/nvidia/ai-dynamo/tensorrtllm-runtime:1.2.1")#, add_python="3.13") #
     .entrypoint([])
-    .apt_install(["openmpi-bin", "libopenmpi-dev"]) # Crucial for UCX/MPI bindings
+    #.apt_install(["openmpi-bin", "libopenmpi-dev"]) # Crucial for UCX/MPI bindings
     .uv_pip_install(["pip", "uv"], extra_options="--upgrade")
     .uv_pip_install(["huggingface-hub>=0.36.0", "requests", "setuptools", "wheel", "setuptools-rust"])
     .env({"TORCH_CUDA_ARCH_LIST": "8.0 8.6 9.0 9.0a 10.0 10.0a 10.3 10.3a 12.0"}) #"All"
@@ -789,8 +794,8 @@ class DynamoTRTLLMLMCache:
             # TensorRT-LLM/Dynamo version's --help output first.
             "--served-model-name",
             MODEL_NAME,
-            "--ip", # --api-host # --host
-            "0.0.0.0",
+            #"--ip", # --api-host # --host
+            #"0.0.0.0",
             "--discovery-backend",
             "file",
             "--tensor-parallel-size",
