@@ -381,7 +381,11 @@ sglang_image = (
         "LOCAL_IP": "127.0.0.1", 
         "DYNAMO_BIND_ADDRESS": "0.0.0.0",
         # If using Ray or LMCache multi-node properties, map to loopback
-        "RAY_PUBLIC_CHANNELS": "127.0.0.1", 
+        "RAY_PUBLIC_CHANNELS": "127.0.0.1",
+        # Explicitly Define the Routing IP Variables
+        "DYNAMO_LOCAL_IP": "127.0.0.1",
+        "LMC_LOCAL_IP": "127.0.0.1",
+        "SGLANG_LOCAL_IP": "127.0.0.1",
     })
 )
 # Make sure HF_CACHE_PATH doesn't exist before Volume mounted
@@ -435,6 +439,7 @@ max_local_cpu_size: {SGLANG_LMCACHE_MAX_LOCAL_CPU_GB}
     enable_memory_snapshot=True,
     experimental_options={"enable_gpu_snapshot": True},
     secrets=get_secrets(),
+    network_mode="host", # needed for discovery watcher
 )
 @modal.concurrent(target_inputs=TARGET_INPUTS, max_inputs=MAX_INPUTS)
 class DynamoSGLangLMCache:
@@ -484,7 +489,7 @@ class DynamoSGLangLMCache:
             "--enable-metrics",
             "--enable-memory-saver",  # enable offload, for snapshotting
             "--enable-weights-cpu-backup",  # enable offload, for snapshotting
-            #"--enable-lmcache",
+            "--enable-lmcache",
         ]
         worker_env = {
             **os.environ,
