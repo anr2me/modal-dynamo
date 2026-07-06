@@ -385,6 +385,10 @@ sglang_image = (
         # Explicitly Define the Routing IP Variables
         "DYNAMO_LOCAL_IP": "127.0.0.1",
         "LMC_LOCAL_IP": "127.0.0.1",
+        "DYNAMO_BIND_IP": "127.0.0.1",
+        "DYNAMO_ADVERTISE_IP": "127.0.0.1",
+        "LMC_HOST": "127.0.0.1",
+        "SGLANG_HOST": "127.0.0.1",
         "SGLANG_LOCAL_IP": "127.0.0.1",
     })
 )
@@ -452,6 +456,9 @@ class DynamoSGLangLMCache:
         with open(SGLANG_LMCACHE_CONFIG_PATH, "w") as f:
             f.write(SGLANG_LMCACHE_CONFIG_YAML)
 
+        # Inject localized resolution to short-circuit lookup functions
+        subprocess.run("echo '127.0.0.1 localhost' >> /etc/hosts", shell=True)
+    
         frontend_cmd = [
             "python3",
             "-m",
