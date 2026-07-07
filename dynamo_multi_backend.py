@@ -375,6 +375,8 @@ sglang_image = (
         "SGLANG_ENABLE_JIT_DEEPGEMM": "0",
         "SGLANG_JIT_DEEPGEMM_FAST_WARMUP": "1",
     })
+    # improve compatibility with snapshots
+    .env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
     .env({
         # Forces Dynamo and Rust-based engines to bypass Netlink strategies 
         "DYNAMO_HOST": "0.0.0.0",
@@ -417,7 +419,6 @@ sglang_image = sglang_image.run_function(
     gpu=GPU,
     secrets=get_secrets(),
 )
-sglang_image = sglang_image.env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
 
 # LMCache config file content for the SGLang worker. Per
 # https://docs.lmcache.ai/getting_started/quickstart.html: chunk_size 256 is
@@ -475,7 +476,8 @@ class DynamoSGLangLMCache:
         worker_cmd = [
             "python3",
             "-m",
-            "dynamo.sglang",
+            #"dynamo.sglang",
+            "sglang.launch_server",
             "--model-path",
             MODEL_NAME,
             "--revision",
@@ -735,6 +737,8 @@ trtllm_image = (
     # PYTHONHASHSEED=0 is required by LMCache's TRT-LLM adapter: chunk
     # hashing depends on a stable hash() across runs/processes.
     .env({"PYTHONHASHSEED": "0"})
+    # improve compatibility with snapshots
+    .env({"TORCHINDUCTOR_COMPILE_THREADS": "1"})
 )
 # Make sure HF_CACHE_PATH doesn't exist before Volume mounted
 trtllm_image = trtllm_image.run_commands(
