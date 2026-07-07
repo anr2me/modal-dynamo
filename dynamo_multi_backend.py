@@ -172,13 +172,15 @@ def make_wake_up(system_port: int):
 
 
 def wait_ready(
-    process: subprocess.Popen, frontend_port: int, timeout: int = 5 * MINUTES
+    process: subprocess.Popen, frontend_port: int, timeout: int = 10 * MINUTES
 ):
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
             check_running(process)
-            requests.get(f"http://127.0.0.1:{frontend_port}/health").raise_for_status()
+            resp = requests.get(f"http://127.0.0.1:{frontend_port}/health")
+            print(f"Health Status = {resp.status_code}")
+            resp.raise_for_status()
             return
         except (
             subprocess.CalledProcessError,
