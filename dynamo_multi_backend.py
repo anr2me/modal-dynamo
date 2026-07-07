@@ -486,8 +486,8 @@ class DynamoSGLangLMCache:
             MODEL_NAME,
             #"--host", #--master-addr
             #"0.0.0.0",
-            "--discovery-backend",
-            "file",
+            #"--discovery-backend",
+            #"file",
             "--tp",
             f"{N_GPUS}",
             "--cuda-graph-max-bs-decode",
