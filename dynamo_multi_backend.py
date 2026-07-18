@@ -292,7 +292,7 @@ def download_model():
 
     snapshot_download(
         MODEL_NAME,
-        revision=MODEL_REVISION,
+        #revision=MODEL_REVISION,
         # Skip files inference engines don't need (training checkpoints,
         # original fp32/bf16 weights if a quantized repo also ships them,
         # etc.) - keeps the download smaller. Adjust/remove if a different
@@ -308,7 +308,9 @@ def compile_deep_gemm():
     """
     if int(os.environ.get("SGLANG_ENABLE_JIT_DEEPGEMM", "1")):
         subprocess.run(
-            f"python3 -m sglang.compile_deep_gemm --model-path {MODEL_NAME} --revision {MODEL_REVISION} --tp {N_GPUS}",
+            f"python3 -m sglang.compile_deep_gemm --model-path {MODEL_NAME}"
+            #f" --revision {MODEL_REVISION}"
+            f" --tp {N_GPUS}",
             shell=True,
             #capture_output=True,
         )
@@ -466,10 +468,10 @@ class DynamoSGLangLMCache:
             "python3",
             "-m",
             "dynamo.frontend",
-            #"--http-host",
-            #"0.0.0.0",
-            #"--http-port",
-            #f"{SGLANG_FRONTEND_PORT}",
+            "--http-host",
+            "0.0.0.0",
+            "--http-port",
+            f"{SGLANG_FRONTEND_PORT}",
             "--discovery-backend",
             "file",
         ]
@@ -478,18 +480,18 @@ class DynamoSGLangLMCache:
         worker_cmd = [
             "python3",
             "-m",
-            #"dynamo.sglang",
-            "sglang.launch_server",
+            "dynamo.sglang",
+            #"sglang.launch_server",
             "--model-path",
             MODEL_NAME,
-            "--revision",
-            MODEL_REVISION,
+            #"--revision",
+            #MODEL_REVISION,
             "--served-model-name",
             MODEL_NAME,
             #"--host", #--master-addr
             #"0.0.0.0",
-            #"--discovery-backend",
-            #"file",
+            "--discovery-backend",
+            "file",
             "--tp",
             f"{N_GPUS}",
             "--cuda-graph-max-bs-decode",
@@ -624,8 +626,8 @@ class DynamoVLLMLMCache:
             "dynamo.vllm",
             "--model",
             MODEL_NAME,
-            "--revision",
-            MODEL_REVISION,
+            #"--revision",
+            #MODEL_REVISION,
             "--served-model-name",
             MODEL_NAME,
             #"--host", #--master-addr
